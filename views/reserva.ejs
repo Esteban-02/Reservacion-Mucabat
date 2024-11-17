@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/style.css">
+    <title>Reservación</title>
+</head>
+<body>
+
+<form id="reservaForm" action="/reservar" method="POST">
+    <h1>Datos para reservar</h1>
+    <label>Nombre y apellido:</label>
+    <input type="text" name="nombre_apellido" required>
+
+    <label>Razón social:</label>
+    <select name="razon_social" required>
+        <option value="Informal">Informal</option>
+        <option value="Grupal">Grupal</option>
+        <option value="Parche">Parche</option>
+        <option value="Cumpleaños">Cumpleaños</option>
+    </select>
+
+    <label>Zona:</label>
+    <select name="zona" required>
+        <option value="Sala 1">Sala 1</option>
+        <option value="Sala 2">Sala 2</option>
+        <option value="Balcon">Balcón</option>
+        <option value="Bar">Bar</option>
+        <option value="General">General</option>
+    </select>
+
+    <label>Número de personas:</label>
+    <input type="number" name="num_personas" min="1" required>
+
+    <label>Fecha:</label>
+    <input type="date" name="fecha" required>
+
+    <label for="correo">Correo electrónico:</label>
+    <input type="email" id="correo" name="correo" required>
+
+
+    <div class="button-container">
+        <button type="submit">Reservar</button>
+        <button type="button" onclick="cancelarReserva()">Cancelar</button>
+    </div>
+</form>
+
+<!-- Ventana emergente para confirmación -->
+<div id="confirmacionReserva" class="modal" style="display: none;">
+    <div class="modal-content">
+        <p id="mensajeConfirmacion"></p>
+        <button onclick="cerrarModal()">OK</button>
+    </div>
+</div>
+
+<script>
+    document.querySelector('#reservaForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        fetch('/reservar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nombre_apellido: this.nombre_apellido.value,
+                razon_social: this.razon_social.value,
+                zona: this.zona.value,
+                num_personas: this.num_personas.value,
+                fecha: this.fecha.value,
+                correo_electronico: this.correo.value,
+            })
+        }).then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('mensajeConfirmacion').innerText = data.message;
+                    document.getElementById('confirmacionReserva').style.display = 'block';
+
+                    // Guardar el ID de la reservación en un atributo global
+                    window.idReservacionActual = data.idReservacion;
+                } else {
+                    alert(data.message || "Error al realizar la reservación.");
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    });
+
+
+    function cerrarModal() {
+        // Obtener datos necesarios (correo, idReservacion y nombre) de la reserva actual
+        const correo = document.querySelector('#correo').value;
+        const idReservacion = 123; // Reemplazar con el ID real de la reservación desde la base de datos (puedes enviarlo como respuesta del backend)
+        const nombre = document.querySelector('[name="nombre_apellido"]').value;
+
+        // Llamar a la ruta del servidor para enviar el correo
+        fetch('/aprobar-reservacion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ correo, idReservacion, nombre })
+        }).then(response => {
+            if (response.ok) {
+                alert('Correo de confirmación enviado exitosamente.');
+            } else {
+                alert('Hubo un problema al enviar el correo.');
+            }
+        }).catch(error => console.error('Error al enviar el correo:', error));
+
+        // Cerrar el modal
+        document.getElementById('confirmacionReserva').style.display = 'none';
+    }
+
+
+    function cancelarReserva() {
+        if (confirm("¿Seguro quieres cancelar la reservación?")) {
+            alert("Reservación cancelada");
+            document.getElementById("reservaForm").reset();
+        }
+    }
+</script>
+
+</body>
+</html>
